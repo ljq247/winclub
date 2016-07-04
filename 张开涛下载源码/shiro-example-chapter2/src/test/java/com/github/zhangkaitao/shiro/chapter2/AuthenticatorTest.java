@@ -1,6 +1,9 @@
 package com.github.zhangkaitao.shiro.chapter2;
 
+import java.util.List;
+
 import junit.framework.Assert;
+
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.UnknownAccountException;
@@ -27,28 +30,37 @@ public class AuthenticatorTest {
 
     @Test
     public void testAllSuccessfulStrategyWithSuccess() {
-        login("classpath:shiro-authenticator-all-success.ini");
+    	//所有 Realm 验证成功才算成功，且返回所有 Realm 身份验证成功的
+    	//认证信息，如果有一个失败就失败了。
+        Subject login = login("classpath:shiro-authenticator-all-success.ini");
         Subject subject = SecurityUtils.getSubject();
-
+        System.out.println("这个两个拿到的subject是否相同:"+login.equals(subject));
         //得到一个身份集合，其包含了Realm验证成功的身份信息
         PrincipalCollection principalCollection = subject.getPrincipals();
         Assert.assertEquals(2, principalCollection.asList().size());
     }
-
-    @Test(expected = UnknownAccountException.class)
-    public void testAllSuccessfulStrategyWithFail() {
-        login("classpath:shiro-authenticator-all-fail.ini");
-    }
-
     @Test
-    public void testAtLeastOneSuccessfulStrategyWithSuccess() {
+    public void testAtLeastOneSuccessfulStrategyWithSuccess() { //2.
         login("classpath:shiro-authenticator-atLeastOne-success.ini");
         Subject subject = SecurityUtils.getSubject();
 
         //得到一个身份集合，其包含了Realm验证成功的身份信息
         PrincipalCollection principalCollection = subject.getPrincipals();
         Assert.assertEquals(2, principalCollection.asList().size());
+        List asList = principalCollection.asList();
+        for(Object o: asList){
+        	System.out.println("验证后返回的名称:"+o);
+        }
+        
+        System.out.println("验证的realm名称:" +principalCollection.getRealmNames());
     }
+
+    @Test(expected = UnknownAccountException.class)
+    public void testAllSuccessfulStrategyWithFail() { //3. 
+        login("classpath:shiro-authenticator-all-fail.ini");
+    }
+
+
 
     @Test
     public void testFirstOneSuccessfulStrategyWithSuccess() {
@@ -80,7 +92,7 @@ public class AuthenticatorTest {
         Assert.assertEquals(1, principalCollection.asList().size());
     }
 
-    private void login(String configFile) {
+    private Subject login(String configFile) {
         //1、获取SecurityManager工厂，此处使用Ini配置文件初始化SecurityManager
         Factory<org.apache.shiro.mgt.SecurityManager> factory =
                 new IniSecurityManagerFactory(configFile);
@@ -94,6 +106,7 @@ public class AuthenticatorTest {
         UsernamePasswordToken token = new UsernamePasswordToken("zhang", "123");
 
         subject.login(token);
+        return subject;
     }
 
     @After
